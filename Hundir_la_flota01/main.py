@@ -23,8 +23,8 @@ def iniciarjuego():
     print(f"Tenemos 4 Destructores")
     print("#"*40)
 
-    tableroobj.allbarcos( stockbarcos,tablerojp)
-    tableroobj.allbarcos( stockbarcos,tableromuestra)
+    tableroobj.allbarcos(stockbarcos,tablerojp)
+    tableroobj.allbarcos(stockbarcos,tableromuestra)
 
     print(tablerojp)
     print("#"*40)
