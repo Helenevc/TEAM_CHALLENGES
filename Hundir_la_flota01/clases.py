@@ -1,126 +1,98 @@
-""" 
-Vamos a establecer las diferentes clases
-"""
 import numpy as np
 import random
 from variables import stockbarcos
-class Barco:
 
-    orientación= ["N","S","E","O"]
+# ----------------------------------
+# Clase Barco
+# ----------------------------------
+
+class Barco:
+    orientaciones = ["N", "S", "E", "O"]
 
     def __init__(self, nombre, tamaño, cantidad):
         self.nombre = nombre
         self.tamaño = tamaño
         self.cantidad = cantidad
-        self.impactos = 0
-        self.coordenadas=[]
-        self.posicion = self.posicioninicial()
-        
-# tenemos los siguientes barcos
-# 4 barcos de 1 posición de eslora = Destructor
-# 3 barcos de 2 posiciones de eslora = Submarino
-# 2 barcos de 3 posiciones de eslora =Acorazado
-# 1 barco de 4 posiciones de eslora = Portaaviones
-  
-   
-    def posicioninicial(self):
-        
-        for i in range(self.cantidad):
-            fila = np.random.randint(0, 10)
-            columna = np.random.randint(0, 10)
-            coordenada = (fila, columna)
-            if coordenada not in self.coordenadas:  # Asegura que no se repitan coordenadas
-                self.coordenadas.append(coordenada)
-        return self.coordenadas
-    
-    def coloca_barco(self, tablero):
-        nummaxfilas = tablero.shape[0]
-        nummaxcolum = tablero.shape[1]
-        tablerotemp = tablero.copy()
-        for x,y in self.posicion:
-            fila = x
-            columna = y
-            if fila<0 or fila >= nummaxfilas:
-                print(f"No puedo poner la pieza{self}, se sale del tablero")
-                return False
-            if columna<0 or columna >= nummaxcolum:
-                print(f"No puedo poner la pieza{self} porque sale del tablero")
-                return False
-            if tablero[x,y] == "0" or tablero[self]=="X":
-                print(f"Hay otro barco en este sitio")
-                return False
-            tablerotemp[x,y]="O"
-        return tablerotemp
-    
-    def colocabarco(self, tablero):
-        orientación= ["N","S","E","O"]
-        fila, columna = self.posicion[0]
+        self.coordenadas = []
 
-        newori=np.random.choice(orientación)
+    def generar_coordenadas(self, tablero):
+        while True:
+            fila = random.randint(0, 9)
+            columna = random.randint(0, 9)
+            orientacion = random.choice(Barco.orientaciones)
+            coords_temporales = []
 
-        if newori == "N" and fila - (self.cantidad - 1) >= 0:
-            for i in range(self.cantidad):
-                if tablero[fila - i, columna] != " " :
-                    return "Espacio ocupado, intenta de nuevo."
-            for i in range(self.cantidad):
-                tablero[fila - i, columna] = "O"
+            for i in range(self.tamaño):
+                if orientacion == "N":
+                    nueva_fila = fila - i
+                    nueva_col = columna
+                elif orientacion == "S":
+                    nueva_fila = fila + i
+                    nueva_col = columna
+                elif orientacion == "E":
+                    nueva_fila = fila
+                    nueva_col = columna + i
+                else:
+                    nueva_fila = fila
+                    nueva_col = columna - i
 
-        elif newori == "S" and fila + (self.cantidad - 1) < 10:
-            for i in range(self.cantidad):
-                if tablero[fila + i, columna] != " ":
-                    return "Espacio ocupado, intenta de nuevo."
-            for i in range(self.cantidad):
-                tablero[fila + i, columna] = "O"
+                if nueva_fila < 0 or nueva_fila >= 10 or nueva_col < 0 or nueva_col >= 10:
+                    break
+                if tablero[nueva_fila, nueva_col] != " ":
+                    break
 
-        elif newori == "E" and columna + (self.cantidad - 1) < 10:
-            for i in range(self.cantidad):
-                if tablero[fila, columna + i] != " ":
-                    return "Espacio ocupado, intenta de nuevo."
-            for i in range(self.cantidad):
-                tablero[fila, columna + i] = "O"
+                coords_temporales.append((nueva_fila, nueva_col))
 
-        elif newori == "O" and columna - (self.cantidad - 1) >= 0:
-            for i in range(self.cantidad):
-                if tablero[fila, columna - i] != " ":
-                    return "Espacio ocupado, intenta de nuevo."
-            for i in range(self.cantidad):
-                tablero[fila, columna - i] = "O"
-        else:
-            print(f"La CPU ha colocado sus barcos")
+            if len(coords_temporales) == self.tamaño:
+                self.coordenadas = coords_temporales
+                return coords_temporales
+
+    def colocar_en_tablero(self, tablero):
+        for fila, col in self.coordenadas:
+            tablero[fila, col] = "O"
         return tablero
-    
-   
 
-Destructor = Barco("Destructor", 1, 4)
-Submarino = Barco("Submarino", 2, 3)
-Acorazado = Barco("Acorazado", 3, 2)
-Portaaviones = Barco("Portaaviones", 4, 1)      
-
+# ----------------------------------
+# Clase Tablero
+# ----------------------------------
 
 class Tablero:
+    def __init__(self):
+        self.tablero = self.crear_tablero()
 
-    def creatablero (self,lado=10):
-        return np.full((lado, lado)," " )
-    
-    def allbarcos(self,stockbarcos,tablero):
+    def crear_tablero(self, lado=10):
+        return np.full((lado, lado), " ")
+
+    def colocar_todos_los_barcos(self, stockbarcos):
         for nombre, cantidad in stockbarcos.items():
-            for i in range(cantidad):
-                barco= Barco(nombre, stockbarcos[nombre], cantidad)
-                tablerotemp= barco.colocabarco(tablero)
-                i-=1
-        return tablerotemp
-    
-    def disparar(tablero):
-        (x,y) = input ("¿Donde quieres disparar? Recuerda que tienes que facilitarnos dos coordenadas, la 'x'  y la 'y'.")
-        if tablero[x][y]=="O":
-            tablero[x][y]= "X"
-        elif tablero[x][y]=="X":
-            print(f"Nooooo, aquí ya habías disparado")
-        else:
-            tablero[x][y]="-"
-            print("Has disparado al agua")
+            tamaño = self.obtener_tamaño_barco(nombre)
+            for _ in range(cantidad):
+                barco = Barco(nombre, tamaño, cantidad)
+                barco.generar_coordenadas(self.tablero)
+                barco.colocar_en_tablero(self.tablero)
+        return self.tablero
 
-    def comprobartablero(tablero):
-       
-        if tablero!="O":
-            return f"¡¡¡Has ganado!!!"
+    def obtener_tamaño_barco(self, nombre):
+        tamaños = {
+            "Destructor": 1,
+            "Submarino": 2,
+            "Acorazado": 3,
+            "Portaaviones": 4
+        }
+        return tamaños[nombre]
+
+    def mostrar(self):
+        print(self.tablero)
+
+    def disparar(self, x, y):
+        if self.tablero[x, y] == "O":
+            self.tablero[x, y] = "X"
+            return "impacto"
+        elif self.tablero[x, y] in ["X", "-"]:
+            return "repetido"
+        else:
+            self.tablero[x, y] = "~"
+            return "agua"
+
+    def comprobar_victoria(self):
+        return not np.any(self.tablero == "O")

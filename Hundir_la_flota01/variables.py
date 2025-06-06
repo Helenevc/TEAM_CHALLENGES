@@ -23,7 +23,4 @@ disparofallido = "Has fallado"
 tablerojp = np.full((10,10)," ")
 tableroCPU = np.full((10,10), " ")
 
-#stockbarcos = {"Destructores":4,
-#               "Submarino":3,
-#              "Acorazado":2,
-#              "Portaviones":1}
+stockbarcos = { "Destructor": 4,"Submarino": 3,"Acorazado": 2,"Portaaviones": 1 }
