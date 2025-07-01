@@ -12,6 +12,161 @@ warnings.filterwarnings("ignore")                                               
 
 
 
+
+# --------------------------------------------------------------------------------------------------------------------------
+# 1. Funcion: describe_df
+# --------------------------------------------------------------------------------------------------------------------------
+
+def describe_df(df):
+    """
+    
+    Genera una descripción básica del conjunto de datos, proporcionando información útil para el análisis exploratorio inicial.
+
+    Parámetros:
+    - df (pd.DataFrame): Conjunto de datos a analizar.
+
+    Devuelve:
+    - pd.DataFrame:      Un DataFrame transpuesto que contiene:
+    - DATA_TYPE:         Tipo de dato de cada columna.
+    - MISSINGS (%):      Porcentaje de valores nulos por columna.
+    - UNIQUE_VALUES:     Número de valores únicos por columna.
+    - CARD (%):          Porcentaje de cardinalidad (valores únicos respecto al total de filas).
+
+    Esta función permite obtener una visión rápida del tipo de datos, la cantidad de valores faltantes, la diversidad de 
+    valores y la cardinalidad relativa de cada columna del DataFrame.
+    
+    """
+    descr = pd.DataFrame({
+        'DATA_TYPE': df.dtypes,
+        'MISSINGS (%)': (df.isnull().mean() * 100).round(2),
+        'UNIQUE_VALUES': df.nunique(),
+        'CARD (%)': (df.nunique() / len(df) * 100).round(2)})    
+    return descr.T
+
+
+# --------------------------------------------------------------------------------------------------------------------------
+# 2. Funcion: tipifica_variables
+# --------------------------------------------------------------------------------------------------------------------------
+
+def tipifica_variables (df, umbral_cat = int(), umbral_continua = float()):
+    """
+
+    Clasifica las variables de un DataFrame en función de su cardinalidad y tipo de dato, sugiriendo una tipificación 
+    para análisis posteriores.
+
+    Parámetros:
+    - df (pd.DataFrame):        Conjunto de datos a analizar.
+    - umbral_cat (int):         Umbral mínimo de valores únicos para considerar una variable como numérica discreta.
+    - umbral_continua (float):  Umbral mínimo de porcentaje de cardinalidad para considerar una variable como numérica continua.
+
+    Devuelve:
+    - pd.DataFrame:             Un DataFrame con una única columna 'Tipo_sugerido' que clasifica cada variable como:
+    - 'Categorica':             Por defecto, si no cumple otros criterios.
+    - 'Binaria':                Si tiene exactamente 2 valores únicos.
+    - 'Numerica discreta':      Si el número de valores únicos es mayor o igual al umbral_cat.
+    - 'Numerica continua':      Si el porcentaje de cardinalidad es mayor o igual al umbral_continua.
+
+    Notas:
+    - Las variables con un único valor se consideran sin variabilidad y se les asigna un 0% de cardinalidad.
+    - Esta función es útil para automatizar la selección de tipos de variables en tareas de preprocesamiento o modelado.
+    
+    """
+    df = pd.DataFrame([df.nunique(), df.nunique()/len(df) * 100, df.dtypes]) 
+    df = df.T 
+    df = df.rename(columns = {0: "Card", 1: "%_Card", 2: "Tipo"}) 
+
+    df.loc[df.Card == 1, "%_Card"] = 0.00
+
+    df["Tipo_sugerido"] = "Categorica"
+    df.loc[df["Card"] == 2, "Tipo_sugerido"] = "Binaria"
+    df.loc[df["Card"] >= umbral_cat, "Tipo_sugerido"] = "Numerica discreta"
+    df.loc[df["%_Card"] >= umbral_continua, "Tipo_sugerido"] = "Numerica continua"
+
+    return df[["Tipo_sugerido"]]
+
+
+# --------------------------------------------------------------------------------------------------------------------------
+# 3. Funcion: get_features_num_regression
+# --------------------------------------------------------------------------------------------------------------------------
+
+def get_features_num_regression(df, target_col, umbral_corr, pvalue=None):
+    """
+
+    Selecciona variables numéricas candidatas para un modelo de regresión, basándose en su tipo, cardinalidad y correlación 
+    con la variable objetivo.
+
+    Parámetros:
+    - df (pd.DataFrame):     Conjunto de datos a analizar.
+    - target_col (str):      Nombre de la variable objetivo. Debe estar presente en el DataFrame y ser numérica.
+    - umbral_corr (float):   Umbral mínimo de correlación absoluta requerido entre las variables y el target (valor entre 0 y 1).
+    - pvalue (float o None): (Parámetro no implementado actualmente). Se reserva para aplicar un filtro estadístico adicional 
+                             en futuras versiones.
+
+    Devuelve:
+    - list[str] o None:      Lista de nombres de columnas numéricas que cumplen con los criterios de selección, o None en caso 
+                             de error.
+
+    Criterios de selección:
+    - Se consideran variables numéricas aquellas con tipo `int` o `float`.
+    - La variable objetivo debe ser numérica y tener una cardinalidad relativa (porcentaje de valores únicos) mayor o igual 
+      a un umbral (por defecto 6%).
+    - Se seleccionan aquellas variables cuya correlación absoluta con el target sea mayor al umbral especificado.
+
+    Notas:
+    - La función incluye validaciones básicas de entrada y devuelve mensajes de error si los parámetros no son adecuados.
+    - Actualmente, el parámetro `pvalue` no se utiliza, pero está previsto para futuras mejoras.
+
+    """
+    #Comprobacion df
+    if not isinstance(df, pd.DataFrame):
+        print("El primer argumento no es un DataFrame")
+        return None
+    #comprobacion target_col
+    if target_col not in df.columns:
+        print("La columna target no pertenece a este DataFrame")
+        return None
+    #comprobacion umbral_corr
+    if not (0 < umbral_corr < 1):
+        print("Error: El umbral de correlacion debe ser entre 0 y 1")
+    if not isinstance(umbral_corr, float):
+        print("Error: El umbral de correlacion debe ser un foat")
+        return None
+    #comprobacion pvalue?
+    
+    #instancio la lista que sera mi return
+    lista_numerica = []
+    umbral_cat = 6
+
+    for col in df: 
+        if df[col].dtype == float:
+            lista_numerica.append(col)
+        if df[col].dtype == int:
+             lista_numerica.append(col)
+        if col == target_col:
+            None
+        else:
+             None
+        return lista_numerica
+
+    #verifica que col target sea numerica continua o discreta con alta cardinalidad
+    card_target = df[target_col].nunique()/len(df)*100
+    if df[target_col].dtype != int and df[target_col].dtype != float:
+        print("Error este target no es numerica")
+    if card_target >= umbral_cat:
+        print(f"El target es discreta: {card_target}")
+    else:
+        None
+    
+    corr = df.corr(numeric_only= True)
+    corr_abs = np.abs(corr[target_col]).sort_values(ascending = False)
+    for col2, correlacion in corr_abs.items(): 
+        if correlacion > umbral_corr:
+            lista_numerica.append(col2)
+        else:
+            None
+        return lista_numerica
+
+
 # --------------------------------------------------------------------------------------------------------------------------
 # 4. Funcion: plot_features_num_regression
 # --------------------------------------------------------------------------------------------------------------------------
@@ -25,14 +180,14 @@ def plot_features_num_regression(df, target_col = "", columns = [], umbral_corr 
     Los gráficos se generan en grupos de hasta 5 variables (incluyendo el target).
     
     Parámetros:
-    - df (pd.DataFrame):    Conjunto de datos.
-    - target_col (str):     Nombre de la variable objetivo. Obligatorio.
-    - columns (list[str]):  Lista de variables numéricas a considerar. Si se omite, se usan todas las disponibles.
-    - umbral_corr (float):  Mínimo valor absoluto de correlación requerido. Por defecto es 0.
-    - pvalue (float o None):Nivel de significancia estadística (entre 0 y 1). Si es None, no se aplica este filtro.
+    - df (pd.DataFrame):     Conjunto de datos.
+    - target_col (str):      Nombre de la variable objetivo. Obligatorio.
+    - columns (list[str]):   Lista de variables numéricas a considerar. Si se omite, se usan todas las disponibles.
+    - umbral_corr (float):   Mínimo valor absoluto de correlación requerido. Por defecto es 0.
+    - pvalue (float o None): Nivel de significancia estadística (entre 0 y 1). Si es None, no se aplica este filtro.
 
     Develve:
-    - list[str] o None:     la lista de variables que cumplen los criterios, o None en caso de error.
+    - list[str] o None:      La lista de variables que cumplen los criterios, o None en caso de error.
     
     Si la lista no está vacía, la función pintará una pairplot del dataframe considerando la columna designada por "target_col" 
     y aquellas incluidas en "column" que cumplan que su correlación con "target_col" es superior en valor absoluto a 
@@ -42,7 +197,6 @@ def plot_features_num_regression(df, target_col = "", columns = [], umbral_corr 
     
  
     """
-
     # Verficaciones iniciales
     if not isinstance(df, pd.DataFrame):
         print(f"Error: {df} no es un DataFrame.")
